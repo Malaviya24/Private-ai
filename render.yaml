@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: private-ai
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LOGO_API_URL
+        sync: false
+      - key: TEXT_TO_VIDEO_BASE_URL
+        sync: false
+      - key: TEXT_TO_VIDEO_AUTHORIZATION
+        sync: false
+      - key: TEXT_TO_VIDEO_SIGN
+        sync: false
+      - key: TEXT_TO_VIDEO_DEVICE_ID
+        value: 1b5336ed0297604a
+      - key: TEXT_TO_VIDEO_VERSION
+        value: 72
+      - key: TEXT_TO_VIDEO_PT
+        value: ""
