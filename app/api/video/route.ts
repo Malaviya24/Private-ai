@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getTextToVideoConfig } from "@/lib/api-config";
 import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
 type NsfwResponse = {
   code?: number;
   success?: boolean;

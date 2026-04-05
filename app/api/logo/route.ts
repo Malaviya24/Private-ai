@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLogoApiUrl } from "@/lib/api-config";
 import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 
+export const runtime = "nodejs";
+export const maxDuration = 30;
+
 type ExternalLogoResponse = {
   success?: boolean;
   message?: string;
