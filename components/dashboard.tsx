@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ActivityItem, ApiStatus, LogoResult, VideoResult } from "@/lib/types";
+import { MobileLookup } from "@/components/mobile-lookup";
 
 const starterPrompts = [
   "Luxury fashion house emblem with golden chrome",
@@ -15,7 +16,7 @@ const tickerItems = [
   "text to video runs",
   "server-side secrets only",
   "10 second cooldown live",
-  "neo brutal control room"
+  "mobile lookup live"
 ];
 
 const logoFrames = [
@@ -346,6 +347,10 @@ function ArchitectureBoard() {
           <p>Server route runs NSFW screening, creates a video job, and submits the selected aspect ratio to the provider.</p>
         </article>
         <article className="note-card">
+          <strong>/api/lookup</strong>
+          <p>Server route validates the 10-digit number, injects the lookup API key, and returns normalized records for the client cards.</p>
+        </article>
+        <article className="note-card">
           <strong>cooldown layer</strong>
           <p>Each generator gets a hard 10 second lock after a successful run so users cannot spam the provider.</p>
         </article>
@@ -536,7 +541,7 @@ export function Dashboard() {
             <span>DASHBOARD</span>
           </h1>
           <p className="hero-copy">
-            One sharp-edged Next.js workspace for your logo and text-to-video APIs. Hard borders. Hard cooldowns.
+            One sharp-edged Next.js workspace for your logo, text-to-video, and mobile lookup APIs. Hard borders. Hard cooldowns.
             Server-only secrets. Zero corporate blur.
           </p>
 
@@ -633,6 +638,8 @@ export function Dashboard() {
         <VideoPreview status={videoStatus} result={videoResult} error={videoError} />
       </section>
 
+      <MobileLookup />
+
       <section className="lower-grid">
         <ActivityFeed activity={activity} />
         <ArchitectureBoard />
@@ -640,3 +647,4 @@ export function Dashboard() {
     </main>
   );
 }
+

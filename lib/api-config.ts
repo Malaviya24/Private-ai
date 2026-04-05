@@ -24,3 +24,10 @@ export function getTextToVideoConfig() {
     version: process.env.TEXT_TO_VIDEO_VERSION || "72"
   };
 }
+
+export function getLookupConfig() {
+  return {
+    baseUrl: process.env.LOOKUP_API_URL || "https://aerivue-95q3.onrender.com/lookup",
+    apiKey: requireEnv("LOOKUP_API_KEY")
+  };
+}
