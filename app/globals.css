@@ -754,3 +754,118 @@ video {
   }
 }
 
+
+.frame-block {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.frame-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.frame-label {
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mini-sticker {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 4px solid var(--neo-fg);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: var(--neo-white);
+  box-shadow: var(--neo-shadow-sm);
+}
+
+.mini-sticker-accent {
+  background: var(--neo-secondary);
+}
+
+.mini-sticker-secondary {
+  background: var(--neo-muted);
+}
+
+.frame-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.frame-button {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 4px solid var(--neo-fg);
+  background: var(--neo-white);
+  box-shadow: var(--neo-shadow-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 120ms linear, box-shadow 120ms linear, background-color 120ms linear;
+}
+
+.frame-button strong,
+.frame-button span {
+  display: block;
+}
+
+.frame-button strong {
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.frame-button span {
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.frame-button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--neo-shadow-md);
+}
+
+.frame-button:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.frame-button.is-selected {
+  background: var(--neo-secondary);
+}
+
+.result-strip {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 4px solid var(--neo-fg);
+  background: var(--neo-secondary);
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: var(--neo-shadow-sm);
+}
+
+.result-strip-dark {
+  color: var(--neo-fg);
+  background: var(--neo-white);
+}
+
+@media (max-width: 720px) {
+  .frame-grid {
+    grid-template-columns: 1fr;
+  }
+}

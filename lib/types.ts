@@ -4,6 +4,7 @@ export type LogoResult = {
   success: boolean;
   prompt: string;
   images: string[];
+  frame?: string;
   developer?: string;
   message?: string;
 };
@@ -14,6 +15,7 @@ export type VideoResult = {
   filename: string;
   safe: string;
   prompt: string;
+  aspectRatio?: string;
 };
 
 export type ActivityItem = {

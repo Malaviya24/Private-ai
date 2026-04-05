@@ -5,6 +5,8 @@ import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const allowedAspectRatios = new Set(["auto", "1:1", "4:5", "9:16", "16:9"]);
+
 type NsfwResponse = {
   code?: number;
   success?: boolean;
@@ -43,6 +45,9 @@ async function delay(ms: number) {
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const prompt = body?.prompt?.trim();
+  const aspectRatio = typeof body?.aspectRatio === "string" && allowedAspectRatios.has(body.aspectRatio)
+    ? body.aspectRatio
+    : "auto";
 
   if (!prompt) {
     return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
       headers: jsonHeaders,
       body: JSON.stringify({
         ai_sound: 1,
-        aspect_ratio: "auto",
+        aspect_ratio: aspectRatio,
         ctry_target: "others",
         deviceID: config.deviceId,
         isPremium: 0,
@@ -138,7 +143,8 @@ export async function POST(request: NextRequest) {
           url,
           filename,
           safe: pollData.datas?.[0]?.safe || "unknown",
-          prompt
+          prompt,
+          aspectRatio
         });
       }
 

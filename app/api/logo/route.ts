@@ -5,6 +5,8 @@ import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
+const allowedFrames = new Set(["1:1 Square", "4:5 Poster", "3:2 Landscape", "16:9 Banner"]);
+
 type ExternalLogoResponse = {
   success?: boolean;
   message?: string;
@@ -16,6 +18,7 @@ type ExternalLogoResponse = {
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const prompt = body?.prompt?.trim();
+  const frame = typeof body?.frame === "string" && allowedFrames.has(body.frame) ? body.frame : undefined;
 
   if (!prompt) {
     return NextResponse.json(
@@ -31,12 +34,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const promptWithFrame = frame ? `${prompt}. Compose it for a ${frame} frame.` : prompt;
+
     const response = await fetch(getLogoApiUrl(), {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt: promptWithFrame }),
       cache: "no-store"
     });
 
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       prompt,
+      frame,
       images,
       developer: "@ab_devs"
     });

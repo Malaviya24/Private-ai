@@ -18,6 +18,21 @@ const tickerItems = [
   "neo brutal control room"
 ];
 
+const logoFrames = [
+  { id: "square", label: "1:1 Square", hint: "avatars and marks" },
+  { id: "poster", label: "4:5 Poster", hint: "social cards" },
+  { id: "landscape", label: "3:2 Landscape", hint: "covers and headers" },
+  { id: "banner", label: "16:9 Banner", hint: "hero banners" }
+] as const;
+
+const videoFrames = [
+  { id: "auto", label: "Auto", value: "auto", hint: "let provider choose" },
+  { id: "square", label: "1:1", value: "1:1", hint: "feed posts" },
+  { id: "poster", label: "4:5", value: "4:5", hint: "portrait social" },
+  { id: "reel", label: "9:16", value: "9:16", hint: "reels and shorts" },
+  { id: "wide", label: "16:9", value: "16:9", hint: "youtube and web" }
+] as const;
+
 type LogoResponse = LogoResult & {
   retryAfter?: number;
 };
@@ -26,6 +41,9 @@ type VideoResponse = VideoResult & {
   error?: string;
   retryAfter?: number;
 };
+
+type LogoFrame = (typeof logoFrames)[number];
+type VideoFrame = (typeof videoFrames)[number];
 
 function formatTime(value: string) {
   return new Intl.DateTimeFormat("en-IN", {
@@ -95,7 +113,45 @@ function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
   );
 }
 
-function GeneratorForm({
+function FramePicker<T extends { id: string; label: string; hint: string }>({
+  title,
+  options,
+  selected,
+  onSelect,
+  accent
+}: {
+  title: string;
+  options: readonly T[];
+  selected: T;
+  onSelect: (option: T) => void;
+  accent: "accent" | "secondary";
+}) {
+  return (
+    <div className="frame-block">
+      <div className="frame-heading-row">
+        <span className="frame-label">{title}</span>
+        <span className={`mini-sticker ${accent === "accent" ? "mini-sticker-accent" : "mini-sticker-secondary"}`}>
+          resolution
+        </span>
+      </div>
+      <div className="frame-grid">
+        {options.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            className={`frame-button ${selected.id === option.id ? "is-selected" : ""}`}
+            onClick={() => onSelect(option)}
+          >
+            <strong>{option.label}</strong>
+            <span>{option.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function GeneratorForm<T extends { id: string; label: string; hint: string }>({
   id,
   title,
   kicker,
@@ -108,7 +164,11 @@ function GeneratorForm({
   isBusy,
   cooldownSeconds,
   cooldownLabel,
-  accent
+  accent,
+  frameTitle,
+  frameOptions,
+  selectedFrame,
+  onSelectFrame
 }: {
   id: string;
   title: string;
@@ -123,6 +183,10 @@ function GeneratorForm({
   cooldownSeconds: number;
   cooldownLabel: string;
   accent: "accent" | "secondary";
+  frameTitle: string;
+  frameOptions: readonly T[];
+  selectedFrame: T;
+  onSelectFrame: (option: T) => void;
 }) {
   return (
     <section className={`brutal-panel brutal-service brutal-service-${accent}`}>
@@ -139,6 +203,13 @@ function GeneratorForm({
       <p className="service-copy">{description}</p>
 
       <form onSubmit={onSubmit} className="generator-form brutal-form">
+        <FramePicker
+          title={frameTitle}
+          options={frameOptions}
+          selected={selectedFrame}
+          onSelect={onSelectFrame}
+          accent={accent}
+        />
         <label htmlFor={id}>Prompt</label>
         <textarea
           id={id}
@@ -183,6 +254,7 @@ function LogoGallery({
         <StatusBadge label="logo" status={status} />
       </div>
 
+      {result?.frame ? <p className="result-strip">Requested frame: {result.frame}</p> : null}
       {status === "loading" ? <div className="empty-board loading-board">Generating sticker-ready logo shots...</div> : null}
       {error ? <div className="error-board">{error}</div> : null}
 
@@ -223,6 +295,7 @@ function VideoPreview({
         <StatusBadge label="video" status={status} />
       </div>
 
+      {result?.aspectRatio ? <p className="result-strip result-strip-dark">Requested ratio: {result.aspectRatio}</p> : null}
       {status === "loading" ? <div className="empty-board loading-board">Polling frames, checking the final cut, waiting for the file...</div> : null}
       {error ? <div className="error-board">{error}</div> : null}
 
@@ -266,15 +339,15 @@ function ArchitectureBoard() {
       <div className="note-grid">
         <article className="note-card">
           <strong>/api/logo</strong>
-          <p>Server route normalizes your logo provider response and keeps the browser away from backend details.</p>
+          <p>Server route normalizes your logo provider response and now passes your requested frame as prompt guidance.</p>
         </article>
         <article className="note-card">
           <strong>/api/video</strong>
-          <p>Server route runs NSFW screening, job creation, and polling until the video file is ready.</p>
+          <p>Server route runs NSFW screening, creates a video job, and submits the selected aspect ratio to the provider.</p>
         </article>
         <article className="note-card">
           <strong>cooldown layer</strong>
-          <p>Each generator gets a hard 10 second lock after a run so users cannot spam the provider.</p>
+          <p>Each generator gets a hard 10 second lock after a successful run so users cannot spam the provider.</p>
         </article>
       </div>
     </section>
@@ -284,6 +357,8 @@ function ArchitectureBoard() {
 export function Dashboard() {
   const [logoPrompt, setLogoPrompt] = useState(starterPrompts[0]);
   const [videoPrompt, setVideoPrompt] = useState(starterPrompts[2]);
+  const [logoFrame, setLogoFrame] = useState<LogoFrame>(logoFrames[0]);
+  const [videoFrame, setVideoFrame] = useState<VideoFrame>(videoFrames[0]);
   const [logoStatus, setLogoStatus] = useState<ApiStatus>("idle");
   const [videoStatus, setVideoStatus] = useState<ApiStatus>("idle");
   const [logoResult, setLogoResult] = useState<LogoResult | null>(null);
@@ -349,7 +424,7 @@ export function Dashboard() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: logoPrompt })
+        body: JSON.stringify({ prompt: logoPrompt, frame: logoFrame.label })
       });
 
       const data = (await response.json()) as LogoResponse;
@@ -372,7 +447,7 @@ export function Dashboard() {
         type: "logo",
         prompt: logoPrompt,
         status: "success",
-        detail: `${data.images.length} image${data.images.length === 1 ? "" : "s"} ready`
+        detail: `${data.frame || logoFrame.label} ready`
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected logo error.";
@@ -400,7 +475,7 @@ export function Dashboard() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: videoPrompt })
+        body: JSON.stringify({ prompt: videoPrompt, aspectRatio: videoFrame.value })
       });
 
       const data = (await response.json()) as VideoResponse;
@@ -423,7 +498,7 @@ export function Dashboard() {
         type: "video",
         prompt: videoPrompt,
         status: "success",
-        detail: data.filename
+        detail: `${data.aspectRatio || videoFrame.value} ${data.filename}`
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected video error.";
@@ -497,8 +572,8 @@ export function Dashboard() {
             <strong>10s lock after every successful run.</strong>
           </div>
           <div className="chaos-card chaos-card-muted">
-            <span className="chaos-chip">stack</span>
-            <strong>Next.js 15 + React 19 + typed routes.</strong>
+            <span className="chaos-chip">frame presets</span>
+            <strong>Square, poster, reel, and banner buttons are live.</strong>
           </div>
           <div className="burst-shape burst-one" aria-hidden="true" />
           <div className="burst-shape burst-two" aria-hidden="true" />
@@ -517,7 +592,7 @@ export function Dashboard() {
           id="logoPrompt"
           title="3D Logo Generator"
           kicker="service one"
-          description="Feed the logo route a strong prompt and it returns normalized image links ready for preview."
+          description="Feed the logo route a strong prompt, choose a frame, and it returns normalized image links ready for preview."
           prompt={logoPrompt}
           onChange={setLogoPrompt}
           onSubmit={handleLogoSubmit}
@@ -527,6 +602,10 @@ export function Dashboard() {
           cooldownSeconds={logoCooldownSeconds}
           cooldownLabel="Logo generator"
           accent="accent"
+          frameTitle="Photo frame"
+          frameOptions={logoFrames}
+          selectedFrame={logoFrame}
+          onSelectFrame={setLogoFrame}
         />
 
         <LogoGallery status={logoStatus} result={logoResult} error={logoError} />
@@ -535,7 +614,7 @@ export function Dashboard() {
           id="videoPrompt"
           title="Text to Video"
           kicker="service two"
-          description="This route checks NSFW, creates the video job, polls for completion, then returns the final file."
+          description="Choose the video frame first, then the route checks NSFW, creates the job, polls for completion, and returns the final file."
           prompt={videoPrompt}
           onChange={setVideoPrompt}
           onSubmit={handleVideoSubmit}
@@ -545,6 +624,10 @@ export function Dashboard() {
           cooldownSeconds={videoCooldownSeconds}
           cooldownLabel="Video generator"
           accent="secondary"
+          frameTitle="Video frame"
+          frameOptions={videoFrames}
+          selectedFrame={videoFrame}
+          onSelectFrame={setVideoFrame}
         />
 
         <VideoPreview status={videoStatus} result={videoResult} error={videoError} />
