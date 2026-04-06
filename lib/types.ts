@@ -25,7 +25,6 @@ export type LookupRecord = Record<string, LookupFieldValue>;
 export type LookupResult = {
   success: boolean;
   number: string;
-  owner?: string;
   status?: string;
   count: number;
   searchTime?: string;
@@ -41,3 +40,4 @@ export type ActivityItem = {
   status: "success" | "error";
   detail: string;
 };
+

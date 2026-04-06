@@ -47,7 +47,6 @@ function formatLookupCopy(result: LookupResult) {
   const header = [
     `Number: ${result.number}`,
     `Matches: ${result.count}`,
-    result.owner ? `Owner: ${result.owner}` : null,
     result.searchTime ? `Search time: ${result.searchTime}` : null
   ].filter(Boolean);
 
@@ -287,10 +286,6 @@ export function MobileLookup() {
                     <strong>{result.status || "unknown"}</strong>
                   </article>
                   <article className="lookup-summary-card">
-                    <span>Owner</span>
-                    <strong>{result.owner || "N/A"}</strong>
-                  </article>
-                  <article className="lookup-summary-card">
                     <span>Search time</span>
                     <strong>{result.searchTime || "N/A"}</strong>
                   </article>
@@ -336,5 +331,4 @@ export function MobileLookup() {
     </section>
   );
 }
-
 
