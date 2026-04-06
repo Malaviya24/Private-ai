@@ -54,6 +54,57 @@ video {
   padding: 20px 0 56px;
 }
 
+
+.jump-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.jump-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 12px;
+  border: 4px solid var(--neo-fg);
+  box-shadow: var(--neo-shadow-sm);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+  transition: transform 120ms linear, box-shadow 120ms linear, background-color 120ms linear;
+}
+
+.jump-link:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--neo-shadow-md);
+}
+
+.jump-link:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.jump-link-accent {
+  background: var(--neo-accent);
+}
+
+.jump-link-secondary {
+  background: var(--neo-secondary);
+}
+
+.jump-link-muted {
+  background: var(--neo-muted);
+}
+
+.jump-link-paper {
+  background: var(--neo-white);
+}
+
 .ticker-strip {
   overflow: hidden;
   margin-bottom: 18px;
@@ -405,6 +456,10 @@ video {
   padding: 24px;
 }
 
+.brutal-service {
+  scroll-margin-top: 18px;
+}
+
 .brutal-service-accent {
   background: var(--neo-accent);
 }
@@ -664,6 +719,7 @@ video {
 }
 
 .lower-grid {
+  scroll-margin-top: 18px;
   grid-template-columns: 1.15fr 0.85fr;
   margin-top: 22px;
 }
@@ -697,12 +753,29 @@ video {
     grid-template-columns: 1fr;
   }
 
+  .jump-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero-chaos {
     padding-top: 6px;
   }
 }
 
 @media (max-width: 720px) {
+  .jump-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .jump-link {
+    min-height: 42px;
+    padding: 8px 10px;
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+  }
+
   .burst-shape {
     display: none;
   }
@@ -879,7 +952,12 @@ video {
   }
 }
 
+#mobile-lookup {
+  scroll-margin-top: 18px;
+}
+
 .lookup-stage {
+  scroll-margin-top: 18px;
   margin-top: 24px;
 }
 
@@ -1178,6 +1256,7 @@ video {
   }
 }
 .site-footer {
+  scroll-margin-top: 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1210,8 +1289,4 @@ video {
     width: 100%;
   }
 }
-
-
-
-
 

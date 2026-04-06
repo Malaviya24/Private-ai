@@ -157,6 +157,7 @@ function FramePicker<T extends { id: string; label: string; hint: string }>({
 }
 
 function GeneratorForm<T extends { id: string; label: string; hint: string } = { id: string; label: string; hint: string }>({
+  sectionId,
   id,
   title,
   kicker,
@@ -175,6 +176,7 @@ function GeneratorForm<T extends { id: string; label: string; hint: string } = {
   selectedFrame,
   onSelectFrame
 }: {
+  sectionId?: string;
   id: string;
   title: string;
   kicker: string;
@@ -194,7 +196,7 @@ function GeneratorForm<T extends { id: string; label: string; hint: string } = {
   onSelectFrame?: (option: T) => void;
 }) {
   return (
-    <section className={`brutal-panel brutal-service brutal-service-${accent}`}>
+    <section id={sectionId} className={`brutal-panel brutal-service brutal-service-${accent}`}>
       <div className="section-topline">
         <div>
           <p className="section-label">{kicker}</p>
@@ -639,6 +641,12 @@ export function Dashboard() {
         </div>
       </section>
 
+      <nav className="jump-strip" aria-label="quick navigation">
+        <a className="jump-link jump-link-accent" href="#logo-generator">Logo Tool</a>
+        <a className="jump-link jump-link-secondary" href="#image-generator">Image Tool</a>
+        <a className="jump-link jump-link-paper" href="#video-generator">Video Tool</a>
+        <a className="jump-link jump-link-muted" href="#mobile-lookup">Lookup Tool</a>
+      </nav>
       <section className="hero-grid">
         <header className="brutal-panel hero-panel">
           <span className="sticker-pill sticker-pill-accent hero-badge">malaviya ai studio</span>
@@ -705,6 +713,7 @@ export function Dashboard() {
 
       <section className="workspace-grid">
         <GeneratorForm
+          sectionId="logo-generator"
           id="logoPrompt"
           title="3D Logo Generator"
           kicker="service one"
@@ -723,6 +732,7 @@ export function Dashboard() {
         <LogoGallery status={logoStatus} result={logoResult} error={logoError} />
 
         <GeneratorForm
+          sectionId="image-generator"
           id="imagePrompt"
           title="Text to Image"
           kicker="service two"
@@ -741,6 +751,7 @@ export function Dashboard() {
         <ImageGallery status={imageStatus} result={imageResult} error={imageError} />
 
         <GeneratorForm
+          sectionId="video-generator"
           id="videoPrompt"
           title="Text to Video"
           kicker="service three"
@@ -763,14 +774,16 @@ export function Dashboard() {
         <VideoPreview status={videoStatus} result={videoResult} error={videoError} />
       </section>
 
-      <MobileLookup />
+      <section id="mobile-lookup">
+        <MobileLookup />
+      </section>
 
-      <section className="lower-grid">
+      <section id="system-notes" className="lower-grid">
         <ActivityFeed activity={activity} />
         <ArchitectureBoard />
       </section>
 
-      <footer className="brutal-panel site-footer">
+      <footer id="support-studio" className="brutal-panel site-footer">
         <div>
           <p className="section-label">support the studio</p>
           <h3 className="section-title">Support Independent Development</h3>
@@ -785,6 +798,4 @@ export function Dashboard() {
     </main>
   );
 }
-
-
 
