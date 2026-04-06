@@ -2,20 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { getLookupConfig } from "@/lib/api-config";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 type ExternalLookupRecord = Record<string, string | number | boolean | null | undefined>;
 
 type ExternalLookupResponse = {
+  warning?: string;
+  success?: boolean;
+  api?: string;
   owner?: string;
-  number?: string;
   message?: string;
-  result?: {
-    status?: string;
-    count?: number;
-    search_time?: string;
-    owner?: string;
-    results?: ExternalLookupRecord[];
+  data?: {
+    success?: boolean;
+    cached?: boolean;
+    proxyUsed?: string;
+    attempt?: number;
+    result?: {
+      status?: string;
+      count?: number;
+      search_time?: string;
+      results?: ExternalLookupRecord[];
+    };
   };
 };
 
@@ -40,6 +47,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), 15_000);
+
   try {
     const { baseUrl, apiKey } = getLookupConfig();
     const url = new URL(baseUrl);
@@ -51,7 +61,8 @@ export async function GET(request: NextRequest) {
       headers: {
         Accept: "application/json"
       },
-      cache: "no-store"
+      cache: "no-store",
+      signal: timeoutController.signal
     });
 
     if (!response.ok) {
@@ -61,21 +72,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const data = (await response.json()) as ExternalLookupResponse;
-    const results = Array.isArray(data.result?.results)
-      ? data.result.results.map(normalizeRecord)
+    const payload = (await response.json()) as ExternalLookupResponse;
+    const lookupResult = payload.data?.result;
+    const results = Array.isArray(lookupResult?.results)
+      ? lookupResult.results.map(normalizeRecord)
       : [];
 
     return NextResponse.json(
       {
-        success: true,
-        number: data.number || number,
-        owner: data.result?.owner || data.owner,
-        status: data.result?.status || "unknown",
-        count: typeof data.result?.count === "number" ? data.result.count : results.length,
-        searchTime: data.result?.search_time,
+        success: payload.success !== false && payload.data?.success !== false,
+        number,
+        owner: payload.owner,
+        status: lookupResult?.status || "unknown",
+        count: typeof lookupResult?.count === "number" ? lookupResult.count : results.length,
+        searchTime: lookupResult?.search_time,
         results,
-        message: results.length === 0 ? data.message || "No data found." : undefined
+        message: results.length === 0 ? payload.message || "No data found." : undefined
       },
       {
         headers: {
@@ -84,6 +96,13 @@ export async function GET(request: NextRequest) {
       }
     );
   } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      return NextResponse.json(
+        { success: false, message: "Lookup provider timed out. Please try again in a moment." },
+        { status: 504 }
+      );
+    }
+
     const message =
       error instanceof Error && process.env.NODE_ENV !== "production"
         ? error.message
@@ -93,7 +112,7 @@ export async function GET(request: NextRequest) {
       { success: false, message },
       { status: 500 }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
-
-
