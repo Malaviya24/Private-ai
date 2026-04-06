@@ -1168,4 +1168,36 @@ video {
     grid-template-columns: 1fr;
   }
 }
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--neo-secondary), var(--neo-bg));
+}
 
+.footer-copy {
+  max-width: 50ch;
+  margin: 10px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.footer-link {
+  min-width: 220px;
+}
+
+@media (max-width: 720px) {
+  .site-footer {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 18px;
+  }
+
+  .footer-link {
+    width: 100%;
+  }
+}

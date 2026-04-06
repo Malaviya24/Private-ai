@@ -19,13 +19,6 @@ const tickerItems = [
   "mobile lookup live"
 ];
 
-const logoFrames = [
-  { id: "square", label: "1:1 Square", hint: "avatars and marks" },
-  { id: "poster", label: "4:5 Poster", hint: "social cards" },
-  { id: "landscape", label: "3:2 Landscape", hint: "covers and headers" },
-  { id: "banner", label: "16:9 Banner", hint: "hero banners" }
-] as const;
-
 const videoFrames = [
   { id: "auto", label: "Auto", value: "auto", hint: "let provider choose" },
   { id: "square", label: "1:1", value: "1:1", hint: "feed posts" },
@@ -43,7 +36,6 @@ type VideoResponse = VideoResult & {
   retryAfter?: number;
 };
 
-type LogoFrame = (typeof logoFrames)[number];
 type VideoFrame = (typeof videoFrames)[number];
 
 function formatTime(value: string) {
@@ -152,7 +144,7 @@ function FramePicker<T extends { id: string; label: string; hint: string }>({
   );
 }
 
-function GeneratorForm<T extends { id: string; label: string; hint: string }>({
+function GeneratorForm<T extends { id: string; label: string; hint: string } = { id: string; label: string; hint: string }>({
   id,
   title,
   kicker,
@@ -184,10 +176,10 @@ function GeneratorForm<T extends { id: string; label: string; hint: string }>({
   cooldownSeconds: number;
   cooldownLabel: string;
   accent: "accent" | "secondary";
-  frameTitle: string;
-  frameOptions: readonly T[];
-  selectedFrame: T;
-  onSelectFrame: (option: T) => void;
+  frameTitle?: string;
+  frameOptions?: readonly T[];
+  selectedFrame?: T;
+  onSelectFrame?: (option: T) => void;
 }) {
   return (
     <section className={`brutal-panel brutal-service brutal-service-${accent}`}>
@@ -204,13 +196,15 @@ function GeneratorForm<T extends { id: string; label: string; hint: string }>({
       <p className="service-copy">{description}</p>
 
       <form onSubmit={onSubmit} className="generator-form brutal-form">
-        <FramePicker
-          title={frameTitle}
-          options={frameOptions}
-          selected={selectedFrame}
-          onSelect={onSelectFrame}
-          accent={accent}
-        />
+        {frameTitle && frameOptions && selectedFrame && onSelectFrame ? (
+          <FramePicker
+            title={frameTitle}
+            options={frameOptions}
+            selected={selectedFrame}
+            onSelect={onSelectFrame}
+            accent={accent}
+          />
+        ) : null}
         <label htmlFor={id}>Prompt</label>
         <textarea
           id={id}
@@ -235,7 +229,6 @@ function GeneratorForm<T extends { id: string; label: string; hint: string }>({
     </section>
   );
 }
-
 function LogoGallery({
   status,
   result,
@@ -340,19 +333,19 @@ function ArchitectureBoard() {
       <div className="note-grid">
         <article className="note-card">
           <strong>/api/logo</strong>
-          <p>Server route normalizes your logo provider response and now passes your requested frame as prompt guidance.</p>
+          <p>Server route protects the provider integration, normalizes responses, and returns ready-to-preview logo assets.</p>
         </article>
         <article className="note-card">
           <strong>/api/video</strong>
-          <p>Server route runs NSFW screening, creates a video job, and submits the selected aspect ratio to the provider.</p>
+          <p>Server route screens prompts, creates the generation job, polls progress, and returns the final rendered video file.</p>
         </article>
         <article className="note-card">
           <strong>/api/lookup</strong>
-          <p>Server route validates the 10-digit number, injects the lookup API key, and returns normalized records for the client cards.</p>
+          <p>Server route validates 10-digit numbers, secures the lookup key, and returns only normalized result data for display.</p>
         </article>
         <article className="note-card">
           <strong>cooldown layer</strong>
-          <p>Each generator gets a hard 10 second lock after a successful run so users cannot spam the provider.</p>
+          <p>Request cooldowns reduce provider strain, prevent abuse, and keep the experience stable for repeated use.</p>
         </article>
       </div>
     </section>
@@ -362,7 +355,6 @@ function ArchitectureBoard() {
 export function Dashboard() {
   const [logoPrompt, setLogoPrompt] = useState(starterPrompts[0]);
   const [videoPrompt, setVideoPrompt] = useState(starterPrompts[2]);
-  const [logoFrame, setLogoFrame] = useState<LogoFrame>(logoFrames[0]);
   const [videoFrame, setVideoFrame] = useState<VideoFrame>(videoFrames[0]);
   const [logoStatus, setLogoStatus] = useState<ApiStatus>("idle");
   const [videoStatus, setVideoStatus] = useState<ApiStatus>("idle");
@@ -429,7 +421,7 @@ export function Dashboard() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ prompt: logoPrompt, frame: logoFrame.label })
+        body: JSON.stringify({ prompt: logoPrompt })
       });
 
       const data = (await response.json()) as LogoResponse;
@@ -452,7 +444,7 @@ export function Dashboard() {
         type: "logo",
         prompt: logoPrompt,
         status: "success",
-        detail: `${data.frame || logoFrame.label} ready`
+        detail: "logo ready"
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unexpected logo error.";
@@ -534,15 +526,15 @@ export function Dashboard() {
       <section className="hero-grid">
         <header className="brutal-panel hero-panel">
           <span className="sticker-pill sticker-pill-accent hero-badge">malaviya ai studio</span>
-          <p className="section-label">creative control room</p>
+          <p className="section-label">professional ai workspace</p>
           <h1 className="hero-title">
-            <span>LOUD</span>
+            <span>MALAVIYA</span>
             <span className="outlined-word">AI</span>
-            <span>DASHBOARD</span>
+            <span>STUDIO</span>
           </h1>
           <p className="hero-copy">
-            One sharp-edged Next.js workspace for your logo, text-to-video, and mobile lookup APIs. Hard borders. Hard cooldowns.
-            Server-only secrets. Zero corporate blur.
+            A professional AI toolkit for logo generation, video creation, and secure mobile lookup workflows.
+            Built with protected server routes, responsive controls, and a streamlined dashboard experience.
           </p>
 
           <div className="hero-prompt-rack">
@@ -569,16 +561,16 @@ export function Dashboard() {
 
         <aside className="hero-chaos">
           <div className="chaos-card chaos-card-primary">
-            <span className="chaos-chip">server only</span>
-            <strong>Secrets stay behind API routes.</strong>
+            <span className="chaos-chip">secure backend</span>
+            <strong>API keys stay protected behind server routes.</strong>
           </div>
           <div className="chaos-card chaos-card-secondary">
-            <span className="chaos-chip">cooldown</span>
-            <strong>10s lock after every successful run.</strong>
+            <span className="chaos-chip">stable usage</span>
+            <strong>Built-in cooldowns keep provider traffic smooth and reliable.</strong>
           </div>
           <div className="chaos-card chaos-card-muted">
-            <span className="chaos-chip">frame presets</span>
-            <strong>Square, poster, reel, and banner buttons are live.</strong>
+            <span className="chaos-chip">all in one</span>
+            <strong>Generate logos, create videos, and run lookups from one workspace.</strong>
           </div>
           <div className="burst-shape burst-one" aria-hidden="true" />
           <div className="burst-shape burst-two" aria-hidden="true" />
@@ -597,7 +589,7 @@ export function Dashboard() {
           id="logoPrompt"
           title="3D Logo Generator"
           kicker="service one"
-          description="Feed the logo route a strong prompt, choose a frame, and it returns normalized image links ready for preview."
+          description="Generate polished logo concepts from a single prompt and review normalized preview links instantly."
           prompt={logoPrompt}
           onChange={setLogoPrompt}
           onSubmit={handleLogoSubmit}
@@ -607,10 +599,6 @@ export function Dashboard() {
           cooldownSeconds={logoCooldownSeconds}
           cooldownLabel="Logo generator"
           accent="accent"
-          frameTitle="Photo frame"
-          frameOptions={logoFrames}
-          selectedFrame={logoFrame}
-          onSelectFrame={setLogoFrame}
         />
 
         <LogoGallery status={logoStatus} result={logoResult} error={logoError} />
@@ -619,7 +607,7 @@ export function Dashboard() {
           id="videoPrompt"
           title="Text to Video"
           kicker="service two"
-          description="Choose the video frame first, then the route checks NSFW, creates the job, polls for completion, and returns the final file."
+          description="Create short AI videos with server-side safety checks, job polling, and ready-to-play final output."
           prompt={videoPrompt}
           onChange={setVideoPrompt}
           onSubmit={handleVideoSubmit}
@@ -644,7 +632,26 @@ export function Dashboard() {
         <ActivityFeed activity={activity} />
         <ArchitectureBoard />
       </section>
+
+      <footer className="brutal-panel site-footer">
+        <div>
+          <p className="section-label">support the studio</p>
+          <h3 className="section-title">Support Independent Development</h3>
+          <p className="footer-copy">
+            If this platform helps you, support future updates, better infrastructure, and new AI tools here.
+          </p>
+        </div>
+        <a className="brutal-link footer-link" href="https://buymeacoffee.com/malaviya" target="_blank" rel="noreferrer">
+          Support Me Here
+        </a>
+      </footer>
+
     </main>
   );
 }
+
+
+
+
+
 
