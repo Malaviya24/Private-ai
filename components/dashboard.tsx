@@ -1,18 +1,19 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { ActivityItem, ApiStatus, LogoResult, VideoResult } from "@/lib/types";
+import type { ActivityItem, ApiStatus, ImageResult, LogoResult, VideoResult } from "@/lib/types";
 import { MobileLookup } from "@/components/mobile-lookup";
 
 const starterPrompts = [
   "Luxury fashion house emblem with golden chrome",
-  "Cyberpunk gaming brand mascot in 3D cartoon style",
+  "Cute girl portrait with soft lighting and anime-inspired detail",
   "Travel reel of monsoon streets in Mumbai at night",
   "Launch teaser for a futuristic startup office"
 ];
 
 const tickerItems = [
   "3D logo drops",
+  "text to image live",
   "text to video runs",
   "server-side secrets only",
   "10 second cooldown live",
@@ -28,6 +29,11 @@ const videoFrames = [
 ] as const;
 
 type LogoResponse = LogoResult & {
+  retryAfter?: number;
+};
+
+type ImageResponse = ImageResult & {
+  error?: string;
   retryAfter?: number;
 };
 
@@ -73,6 +79,12 @@ function StatusBadge({ label, status }: { label: string; status: ApiStatus }) {
 }
 
 function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
+  const labels: Record<ActivityItem["type"], string> = {
+    logo: "logo generator",
+    image: "text to image",
+    video: "text to video"
+  };
+
   return (
     <section className="brutal-panel brutal-paper-panel">
       <div className="section-topline">
@@ -85,12 +97,12 @@ function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
 
       <div className="activity-stack">
         {activity.length === 0 ? (
-          <div className="empty-board">No runs yet. Fire one generator and the log starts shouting back.</div>
+          <div className="empty-board">No runs yet. Launch a tool and your latest activity will appear here.</div>
         ) : (
           activity.map((item) => (
             <article key={item.id} className={`activity-card activity-${item.type}`}>
               <div>
-                <p className="activity-kicker">{item.type === "logo" ? "logo generator" : "text to video"}</p>
+                <p className="activity-kicker">{labels[item.type]}</p>
                 <strong>{item.prompt}</strong>
               </div>
               <div className="activity-meta">
@@ -229,6 +241,7 @@ function GeneratorForm<T extends { id: string; label: string; hint: string } = {
     </section>
   );
 }
+
 function LogoGallery({
   status,
   result,
@@ -264,7 +277,47 @@ function LogoGallery({
       ) : null}
 
       {!error && status !== "loading" && !result?.images?.length ? (
-        <div className="empty-board">Your generated logos will pin themselves here like posters on a wall.</div>
+        <div className="empty-board">Your generated logos will appear here with ready-to-open preview links.</div>
+      ) : null}
+    </section>
+  );
+}
+
+function ImageGallery({
+  status,
+  result,
+  error
+}: {
+  status: ApiStatus;
+  result: ImageResult | null;
+  error: string | null;
+}) {
+  return (
+    <section className="brutal-panel brutal-paper-panel">
+      <div className="section-topline">
+        <div>
+          <p className="section-label">output board</p>
+          <h3 className="section-title">Image previews</h3>
+        </div>
+        <StatusBadge label="image" status={status} />
+      </div>
+
+      {status === "loading" ? <div className="empty-board loading-board">Rendering image concepts from your prompt...</div> : null}
+      {error ? <div className="error-board">{error}</div> : null}
+
+      {result?.images?.length ? (
+        <div className="logo-grid">
+          {result.images.map((image, index) => (
+            <a key={`${image}-${index}`} className="output-card" href={image} target="_blank" rel="noreferrer">
+              <img src={image} alt={`Generated image ${index + 1}`} />
+              <span>Open full size</span>
+            </a>
+          ))}
+        </div>
+      ) : null}
+
+      {!error && status !== "loading" && !result?.images?.length ? (
+        <div className="empty-board">Generated image results will appear here with direct open links.</div>
       ) : null}
     </section>
   );
@@ -336,6 +389,10 @@ function ArchitectureBoard() {
           <p>Server route protects the provider integration, normalizes responses, and returns ready-to-preview logo assets.</p>
         </article>
         <article className="note-card">
+          <strong>/api/image</strong>
+          <p>Server route proxies the text-to-image provider, normalizes the returned image URLs, and keeps usage controlled with cooldowns.</p>
+        </article>
+        <article className="note-card">
           <strong>/api/video</strong>
           <p>Server route screens prompts, creates the generation job, polls progress, and returns the final rendered video file.</p>
         </article>
@@ -354,21 +411,26 @@ function ArchitectureBoard() {
 
 export function Dashboard() {
   const [logoPrompt, setLogoPrompt] = useState(starterPrompts[0]);
+  const [imagePrompt, setImagePrompt] = useState(starterPrompts[1]);
   const [videoPrompt, setVideoPrompt] = useState(starterPrompts[2]);
   const [videoFrame, setVideoFrame] = useState<VideoFrame>(videoFrames[0]);
   const [logoStatus, setLogoStatus] = useState<ApiStatus>("idle");
+  const [imageStatus, setImageStatus] = useState<ApiStatus>("idle");
   const [videoStatus, setVideoStatus] = useState<ApiStatus>("idle");
   const [logoResult, setLogoResult] = useState<LogoResult | null>(null);
+  const [imageResult, setImageResult] = useState<ImageResult | null>(null);
   const [videoResult, setVideoResult] = useState<VideoResult | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [logoCooldownUntil, setLogoCooldownUntil] = useState(0);
+  const [imageCooldownUntil, setImageCooldownUntil] = useState(0);
   const [videoCooldownUntil, setVideoCooldownUntil] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
-    const hasActiveCooldown = logoCooldownUntil > clock || videoCooldownUntil > clock;
+    const hasActiveCooldown = logoCooldownUntil > clock || imageCooldownUntil > clock || videoCooldownUntil > clock;
 
     if (!hasActiveCooldown) {
       return undefined;
@@ -379,23 +441,26 @@ export function Dashboard() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [clock, logoCooldownUntil, videoCooldownUntil]);
+  }, [clock, logoCooldownUntil, imageCooldownUntil, videoCooldownUntil]);
 
   const stats = useMemo(() => {
     const successful = activity.filter((item) => item.status === "success").length;
     const failed = activity.filter((item) => item.status === "error").length;
     const logoRuns = activity.filter((item) => item.type === "logo").length;
+    const imageRuns = activity.filter((item) => item.type === "image").length;
     const videoRuns = activity.filter((item) => item.type === "video").length;
 
     return {
       successful,
       failed,
       logoRuns,
+      imageRuns,
       videoRuns
     };
   }, [activity]);
 
   const logoCooldownSeconds = Math.max(0, Math.ceil((logoCooldownUntil - clock) / 1000));
+  const imageCooldownSeconds = Math.max(0, Math.ceil((imageCooldownUntil - clock) / 1000));
   const videoCooldownSeconds = Math.max(0, Math.ceil((videoCooldownUntil - clock) / 1000));
 
   function pushActivity(item: Omit<ActivityItem, "id" | "createdAt">) {
@@ -454,6 +519,57 @@ export function Dashboard() {
       pushActivity({
         type: "logo",
         prompt: logoPrompt,
+        status: "error",
+        detail: message
+      });
+    }
+  }
+
+  async function handleImageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setImageStatus("loading");
+    setImageError(null);
+    setImageResult(null);
+
+    try {
+      const response = await fetch("/api/image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt: imagePrompt })
+      });
+
+      const data = (await response.json()) as ImageResponse;
+
+      if (!response.ok || data.status !== "success") {
+        if (response.status === 429 && data.retryAfter) {
+          const nextAllowedAt = Date.now() + data.retryAfter * 1000;
+          setImageCooldownUntil(nextAllowedAt);
+          setClock(Date.now());
+        }
+
+        throw new Error(data.error || data.message || "Image generation failed.");
+      }
+
+      setImageResult(data);
+      setImageStatus("success");
+      setImageCooldownUntil(Date.now() + 10_000);
+      setClock(Date.now());
+      pushActivity({
+        type: "image",
+        prompt: imagePrompt,
+        status: "success",
+        detail: `${data.images.length} image option${data.images.length === 1 ? "" : "s"}`
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected image error.";
+      setImageStatus("error");
+      setImageError(message);
+      setImageResult(null);
+      pushActivity({
+        type: "image",
+        prompt: imagePrompt,
         status: "error",
         detail: message
       });
@@ -533,8 +649,8 @@ export function Dashboard() {
             <span>STUDIO</span>
           </h1>
           <p className="hero-copy">
-            A professional AI toolkit for logo generation, video creation, and secure mobile lookup workflows.
-            Built with protected server routes, responsive controls, and a streamlined dashboard experience.
+            A production-ready AI workspace for logo generation, image creation, video production, and secure mobile lookup workflows.
+            Built with protected server routes, responsive controls, and dependable tools for real-world production use.
           </p>
 
           <div className="hero-prompt-rack">
@@ -545,6 +661,7 @@ export function Dashboard() {
                 className={`prompt-sticker ${index % 2 === 0 ? "prompt-sticker-accent" : "prompt-sticker-secondary"}`}
                 onClick={() => {
                   setLogoPrompt(prompt);
+                  setImagePrompt(prompt);
                   setVideoPrompt(prompt);
                 }}
               >
@@ -555,6 +672,7 @@ export function Dashboard() {
 
           <div className="hero-status-row">
             <StatusBadge label="logo" status={logoStatus} />
+            <StatusBadge label="image" status={imageStatus} />
             <StatusBadge label="video" status={videoStatus} />
           </div>
         </header>
@@ -562,15 +680,15 @@ export function Dashboard() {
         <aside className="hero-chaos">
           <div className="chaos-card chaos-card-primary">
             <span className="chaos-chip">secure backend</span>
-            <strong>API keys stay protected behind server routes.</strong>
+            <strong>Server routes protect your keys and keep every request secure.</strong>
           </div>
           <div className="chaos-card chaos-card-secondary">
             <span className="chaos-chip">stable usage</span>
-            <strong>Built-in cooldowns keep provider traffic smooth and reliable.</strong>
+            <strong>Built-in cooldowns keep traffic stable and production usage reliable.</strong>
           </div>
           <div className="chaos-card chaos-card-muted">
             <span className="chaos-chip">all in one</span>
-            <strong>Generate logos, create videos, and run lookups from one workspace.</strong>
+            <strong>Production-ready tools for logos, images, videos, and mobile lookup workflows.</strong>
           </div>
           <div className="burst-shape burst-one" aria-hidden="true" />
           <div className="burst-shape burst-two" aria-hidden="true" />
@@ -580,8 +698,9 @@ export function Dashboard() {
       <section className="stat-grid">
         <StatCard label="successful runs" value={String(stats.successful)} tone="secondary" />
         <StatCard label="logo requests" value={String(stats.logoRuns)} tone="accent" />
-        <StatCard label="video requests" value={String(stats.videoRuns)} tone="muted" />
-        <StatCard label="errors caught" value={String(stats.failed)} tone="paper" />
+        <StatCard label="image requests" value={String(stats.imageRuns)} tone="muted" />
+        <StatCard label="video requests" value={String(stats.videoRuns)} tone="paper" />
+        <StatCard label="errors caught" value={String(stats.failed)} tone="secondary" />
       </section>
 
       <section className="workspace-grid">
@@ -604,9 +723,27 @@ export function Dashboard() {
         <LogoGallery status={logoStatus} result={logoResult} error={logoError} />
 
         <GeneratorForm
+          id="imagePrompt"
+          title="Text to Image"
+          kicker="service two"
+          description="Turn a text prompt into generated image concepts and review direct preview links inside the dashboard."
+          prompt={imagePrompt}
+          onChange={setImagePrompt}
+          onSubmit={handleImageSubmit}
+          buttonLabel="Generate Image"
+          busyLabel="Rendering..."
+          isBusy={imageStatus === "loading"}
+          cooldownSeconds={imageCooldownSeconds}
+          cooldownLabel="Image generator"
+          accent="secondary"
+        />
+
+        <ImageGallery status={imageStatus} result={imageResult} error={imageError} />
+
+        <GeneratorForm
           id="videoPrompt"
           title="Text to Video"
-          kicker="service two"
+          kicker="service three"
           description="Create short AI videos with server-side safety checks, job polling, and ready-to-play final output."
           prompt={videoPrompt}
           onChange={setVideoPrompt}
@@ -645,13 +782,9 @@ export function Dashboard() {
           Support Me Here
         </a>
       </footer>
-
     </main>
   );
 }
-
-
-
 
 
 

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Malaviya AI Studio",
-  description: "A bold Next.js dashboard for logo generation, text to video, and secure mobile lookup."
+  description: "A bold Next.js dashboard for logo generation, image creation, text to video, and secure mobile lookup."
 };
 
 export default function RootLayout({

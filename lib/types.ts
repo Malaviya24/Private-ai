@@ -9,6 +9,13 @@ export type LogoResult = {
   message?: string;
 };
 
+export type ImageResult = {
+  status: "success";
+  prompt: string;
+  images: string[];
+  message?: string;
+};
+
 export type VideoResult = {
   status: "success";
   url: string;
@@ -34,10 +41,9 @@ export type LookupResult = {
 
 export type ActivityItem = {
   id: string;
-  type: "logo" | "video";
+  type: "logo" | "image" | "video";
   prompt: string;
   createdAt: string;
   status: "success" | "error";
   detail: string;
 };
-

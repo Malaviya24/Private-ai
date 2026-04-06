@@ -14,6 +14,10 @@ export function getLogoApiUrl() {
   return process.env.LOGO_API_URL || "https://viscodev.x10.mx/3D_CARTOON/api.php";
 }
 
+export function getTextToImageApiUrl() {
+  return process.env.TEXT_TO_IMAGE_API_URL || "https://text-to-img.apis-bj-devs.workers.dev/";
+}
+
 export function getTextToVideoConfig() {
   return {
     baseUrl: process.env.TEXT_TO_VIDEO_BASE_URL || "https://text2video.aritek.app",
