@@ -21,6 +21,7 @@ type LookupApiError = {
   success?: boolean;
   message?: string;
   error?: string;
+  retryAfter?: number;
 };
 
 function sanitizeMobileNumber(value: string) {
@@ -104,14 +105,29 @@ export function MobileLookup() {
   const [requestError, setRequestError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [copiedTarget, setCopiedTarget] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
     setHistory(readHistory());
   }, []);
 
+  useEffect(() => {
+    if (cooldownUntil <= clock) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setClock(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [clock, cooldownUntil]);
+
   const hasResults = (result?.results.length ?? 0) > 0;
   const hasError = Boolean(validationError || requestError);
   const totalMatches = useMemo(() => result?.results.length ?? 0, [result]);
+  const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - clock) / 1000));
 
   async function copyText(text: string, target: string) {
     try {
@@ -126,6 +142,10 @@ export function MobileLookup() {
   }
 
   async function runLookup(numberToSearch: string) {
+    if (isLoading || cooldownSeconds > 0) {
+      return;
+    }
+
     setIsLoading(true);
     setValidationError(null);
     setRequestError(null);
@@ -140,12 +160,21 @@ export function MobileLookup() {
 
       const data = ((await response.json().catch(() => null)) || {}) as LookupResult & LookupApiError;
 
+      if (response.status === 429 && data.retryAfter) {
+        setCooldownUntil(Date.now() + data.retryAfter * 1000);
+        setClock(Date.now());
+        setValidationError(`Please wait ${data.retryAfter}s before searching again.`);
+        return;
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.message || data.error || "Lookup failed.");
       }
 
       setResult(data);
       setHistory(persistHistory(numberToSearch));
+      setCooldownUntil(Date.now() + 10_000);
+      setClock(Date.now());
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to complete the lookup.";
       setRequestError(message);
@@ -163,6 +192,11 @@ export function MobileLookup() {
       setValidationError("Enter a valid 10-digit mobile number.");
       setRequestError(null);
       setResult(null);
+      return;
+    }
+
+    if (cooldownSeconds > 0) {
+      setValidationError(`Please wait ${cooldownSeconds}s before searching again.`);
       return;
     }
 
@@ -200,7 +234,7 @@ export function MobileLookup() {
                     const nextValue = sanitizeMobileNumber(event.target.value);
                     setNumber(nextValue);
 
-                    if (validationError && isValidMobileNumber(nextValue)) {
+                    if (validationError && isValidMobileNumber(nextValue) && cooldownSeconds === 0) {
                       setValidationError(null);
                     }
                   }}
@@ -208,12 +242,19 @@ export function MobileLookup() {
                   className="lookup-input"
                   aria-invalid={hasError}
                 />
-                <button type="submit" className="brutal-button brutal-button-accent lookup-submit" disabled={isLoading}>
-                  {isLoading ? "Searching..." : "Search Number"}
+                <button
+                  type="submit"
+                  className="brutal-button brutal-button-accent lookup-submit"
+                  disabled={isLoading || cooldownSeconds > 0}
+                >
+                  {isLoading ? "Searching..." : cooldownSeconds > 0 ? `Wait ${cooldownSeconds}s` : "Search Number"}
                 </button>
               </div>
               <p className="lookup-helper" aria-live="polite">
-                {validationError || "Digits only. The search runs through your secure server route."}
+                {validationError ||
+                  (cooldownSeconds > 0
+                    ? `Lookup is on a 10 second cooldown. Try again in ${cooldownSeconds}s.`
+                    : "Digits only. The search runs through your secure server route.")}
               </p>
             </form>
 
@@ -232,6 +273,7 @@ export function MobileLookup() {
                       key={item}
                       type="button"
                       className="history-chip"
+                      disabled={isLoading || cooldownSeconds > 0}
                       onClick={() => {
                         setNumber(item);
                         void runLookup(item);
@@ -331,4 +373,3 @@ export function MobileLookup() {
     </section>
   );
 }
-

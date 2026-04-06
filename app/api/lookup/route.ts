@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getLookupConfig } from "@/lib/api-config";
+import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -47,6 +48,12 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const cooldownResponse = getCooldownResponse(request, "lookup");
+
+  if (cooldownResponse) {
+    return cooldownResponse;
+  }
+
   const timeoutController = new AbortController();
   const timeoutId = setTimeout(() => timeoutController.abort(), 15_000);
 
@@ -77,6 +84,8 @@ export async function GET(request: NextRequest) {
     const results = Array.isArray(lookupResult?.results)
       ? lookupResult.results.map(normalizeRecord)
       : [];
+
+    startCooldown(request, "lookup");
 
     return NextResponse.json(
       {
@@ -116,4 +125,3 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
   }
 }
-
