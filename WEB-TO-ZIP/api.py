@@ -448,16 +448,41 @@ def create_zip(folder_path):
         return None
 
 
+def sanitize_filename(value: str) -> str:
+    value = (value or "").strip().lower()
+    value = re.sub(r'[/\\?%*:|"<>]', '-', value)
+    value = re.sub(r'\s+', '-', value)
+    value = re.sub(r'-{2,}', '-', value).strip('-')
+    return value
+
+
+def build_zip_filename_from_url(target_url: str) -> str:
+    try:
+        parsed = urlparse(target_url)
+        hostname = sanitize_filename(parsed.netloc.replace('www.', ''))
+        path_parts = [
+            sanitize_filename(unquote(part))
+            for part in parsed.path.strip('/').split('/')
+            if part.strip()
+        ][:3]
+        base_name = "-".join([part for part in [hostname, *path_parts] if part]) or "website"
+        if not base_name.endswith(".zip"):
+            base_name = f"{base_name}.zip"
+        return base_name
+    except Exception:
+        return "website.zip"
+
+
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # tmpfiles.org uploader
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-async def upload_to_tmpfiles(zip_path: str) -> Optional[str]:
+async def upload_to_tmpfiles(zip_path: str, upload_filename: str) -> Optional[str]:
     """Upload zip to tmpfiles.org and return the download URL, or None on failure."""
     try:
         async with aiohttp.ClientSession() as session:
             with open(zip_path, 'rb') as f:
                 data = aiohttp.FormData()
-                data.add_field('file', f, filename=os.path.basename(zip_path),
+                data.add_field('file', f, filename=upload_filename,
                                content_type='application/zip')
                 async with session.post(TMPFILES_UPLOAD, data=data, timeout=60) as resp:
                     if resp.status == 200:
@@ -604,12 +629,19 @@ async def zip_website(
                     }
                 )
 
+            zip_filename = build_zip_filename_from_url(url)
+
             # â”€â”€ Upload to tmpfiles.org â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            tmpfiles_url = await upload_to_tmpfiles(zip_file_path)
+            tmpfiles_url = await upload_to_tmpfiles(zip_file_path, zip_filename)
 
             # â”€â”€ Also keep local download as fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             expiry = time.time() + 300
-            STORE[fid] = {"path": zip_file_path, "exp": expiry, "folder": pagefolder}
+            STORE[fid] = {
+                "path": zip_file_path,
+                "exp": expiry,
+                "folder": pagefolder,
+                "filename": zip_filename
+            }
 
             zip_size = os.path.getsize(zip_file_path)
             domain = urlparse(url).netloc.replace('www.', '')
@@ -623,6 +655,7 @@ async def zip_website(
             return JSONResponse(content={
                 "success": True,
                 "file_id": fid,
+                "filename": zip_filename,
                 # Primary: tmpfiles.org link (works on Vercel too)
                 "download_url": tmpfiles_url or local_download_url,
                 "tmpfiles_url": tmpfiles_url,
@@ -680,7 +713,7 @@ async def download_file(file_id: str):
     return FileResponse(
         data["path"],
         media_type="application/zip",
-        filename=f"website_source_{file_id}.zip"
+        filename=data.get("filename", f"website_source_{file_id}.zip")
     )
 
 
