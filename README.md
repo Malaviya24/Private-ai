@@ -1,16 +1,19 @@
 # Malaviya AI Dashboard
 
-A Next.js App Router workspace for three server-backed tools:
+A Next.js App Router workspace for server-backed tools:
 
 - 3D Logo Generator
+- Text to Image
 - Text to Video
+- Web to ZIP
 - Mobile Lookup
 
 ## What was added
 
-- Server-side API routes at `app/api/logo/route.ts`, `app/api/video/route.ts`, and `app/api/lookup/route.ts`
+- Server-side API routes at `app/api/logo/route.ts`, `app/api/image/route.ts`, `app/api/video/route.ts`, `app/api/web-to-zip/route.ts`, and `app/api/lookup/route.ts`
 - A dashboard UI in `components/dashboard.tsx`
 - A dedicated mobile lookup client component in `components/mobile-lookup.tsx`
+- A dedicated web-to-zip client component in `components/web-to-zip.tsx`
 - Centralized environment-based configuration in `lib/api-config.ts`
 - Shared typed response models in `lib/types.ts`
 - A Render deployment blueprint in `render.yaml`
@@ -48,6 +51,7 @@ npm run dev
 
 ```bash
 LOGO_API_URL
+TEXT_TO_IMAGE_API_URL
 TEXT_TO_VIDEO_BASE_URL
 TEXT_TO_VIDEO_AUTHORIZATION
 TEXT_TO_VIDEO_SIGN
@@ -61,6 +65,7 @@ TEXT_TO_VIDEO_DEVICE_ID
 TEXT_TO_VIDEO_VERSION
 TEXT_TO_VIDEO_PT
 LOOKUP_API_URL
+WEB_TO_ZIP_API_URL
 ```
 
 ## Notes

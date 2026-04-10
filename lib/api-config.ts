@@ -35,3 +35,7 @@ export function getLookupConfig() {
     apiKey: requireEnv("LOOKUP_API_KEY")
   };
 }
+
+export function getWebToZipApiUrl() {
+  return process.env.WEB_TO_ZIP_API_URL || "https://web-to-zip-api-nzwz.vercel.app/zip";
+}

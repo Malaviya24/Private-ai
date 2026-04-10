@@ -41,7 +41,7 @@ export type LookupResult = {
 
 export type ActivityItem = {
   id: string;
-  type: "logo" | "image" | "video";
+  type: "logo" | "image" | "video" | "webzip";
   prompt: string;
   createdAt: string;
   status: "success" | "error";

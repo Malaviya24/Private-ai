@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ActivityItem, ApiStatus, ImageResult, LogoResult, VideoResult } from "@/lib/types";
 import { MobileLookup } from "@/components/mobile-lookup";
+import { WebToZip } from "@/components/web-to-zip";
 
 const starterPrompts = [
   "Luxury fashion house emblem with golden chrome",
@@ -15,6 +16,7 @@ const tickerItems = [
   "3D logo drops",
   "text to image live",
   "text to video runs",
+  "web to zip ready",
   "server-side secrets only",
   "10 second cooldown live",
   "mobile lookup live"
@@ -82,7 +84,8 @@ function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
   const labels: Record<ActivityItem["type"], string> = {
     logo: "logo generator",
     image: "text to image",
-    video: "text to video"
+    video: "text to video",
+    webzip: "web to zip"
   };
 
   return (
@@ -399,6 +402,10 @@ function ArchitectureBoard() {
           <p>Server route screens prompts, creates the generation job, polls progress, and returns the final rendered video file.</p>
         </article>
         <article className="note-card">
+          <strong>/api/web-to-zip</strong>
+          <p>Server route validates website URLs, proxies the ZIP provider, and streams downloadable source archives securely.</p>
+        </article>
+        <article className="note-card">
           <strong>/api/lookup</strong>
           <p>Server route validates 10-digit numbers, secures the lookup key, and returns only normalized result data for display.</p>
         </article>
@@ -451,13 +458,15 @@ export function Dashboard() {
     const logoRuns = activity.filter((item) => item.type === "logo").length;
     const imageRuns = activity.filter((item) => item.type === "image").length;
     const videoRuns = activity.filter((item) => item.type === "video").length;
+    const webzipRuns = activity.filter((item) => item.type === "webzip").length;
 
     return {
       successful,
       failed,
       logoRuns,
       imageRuns,
-      videoRuns
+      videoRuns,
+      webzipRuns
     };
   }, [activity]);
 
@@ -645,6 +654,7 @@ export function Dashboard() {
         <a className="jump-link jump-link-accent" href="#logo-generator">Logo Tool</a>
         <a className="jump-link jump-link-secondary" href="#image-generator">Image Tool</a>
         <a className="jump-link jump-link-paper" href="#video-generator">Video Tool</a>
+        <a className="jump-link jump-link-secondary" href="#web-to-zip">Web ZIP Tool</a>
         <a className="jump-link jump-link-muted" href="#mobile-lookup">Lookup Tool</a>
       </nav>
       <section className="hero-grid">
@@ -708,6 +718,7 @@ export function Dashboard() {
         <StatCard label="logo requests" value={String(stats.logoRuns)} tone="accent" />
         <StatCard label="image requests" value={String(stats.imageRuns)} tone="muted" />
         <StatCard label="video requests" value={String(stats.videoRuns)} tone="paper" />
+        <StatCard label="web zip requests" value={String(stats.webzipRuns)} tone="accent" />
         <StatCard label="errors caught" value={String(stats.failed)} tone="secondary" />
       </section>
 
@@ -776,6 +787,10 @@ export function Dashboard() {
 
       <section id="mobile-lookup">
         <MobileLookup />
+      </section>
+
+      <section id="web-to-zip">
+        <WebToZip onActivity={pushActivity} />
       </section>
 
       <section id="system-notes" className="lower-grid">

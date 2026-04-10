@@ -57,7 +57,7 @@ video {
 
 .jump-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -695,6 +695,10 @@ video {
   background: var(--neo-accent);
 }
 
+.activity-webzip {
+  background: var(--neo-muted);
+}
+
 .activity-card strong,
 .note-card strong {
   display: block;
@@ -956,9 +960,33 @@ video {
   scroll-margin-top: 18px;
 }
 
+#web-to-zip {
+  scroll-margin-top: 18px;
+}
+
 .lookup-stage {
   scroll-margin-top: 18px;
   margin-top: 24px;
+}
+
+.webzip-shell {
+  padding: 24px;
+  background:
+    linear-gradient(135deg, transparent 0 84%, rgba(0, 0, 0, 0.07) 84% 100%),
+    var(--neo-bg);
+}
+
+.webzip-form {
+  max-width: 860px;
+}
+
+.webzip-feedback {
+  min-height: 110px;
+  margin-top: 14px;
+}
+
+.webzip-success {
+  margin-top: 14px;
 }
 
 .lookup-shell {
@@ -1230,6 +1258,7 @@ video {
 
 @media (max-width: 720px) {
   .lookup-shell,
+  .webzip-shell,
   .lookup-form-panel,
   .lookup-result-card {
     padding: 18px;
