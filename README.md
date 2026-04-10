@@ -72,4 +72,6 @@ WEB_TO_ZIP_API_URL
 
 - External API secrets stay on the server through Next.js route handlers.
 - The lookup route expects a 10-digit number and proxies the external lookup service with `GET /api/lookup?number=...`.
+- `WEB_TO_ZIP_API_URL` should point to your deployed `WEB-TO-ZIP` Python service `/zip` endpoint.
+- The Next.js route `GET /api/web-to-zip?url=...` calls that Python service, reads `download_url` from JSON, and streams the ZIP back to the browser.
 - Your original Flask API folders are untouched and still available as reference.
