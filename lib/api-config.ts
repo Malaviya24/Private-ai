@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 
 function requireEnv(name: string) {
   const value = process.env[name];
@@ -37,5 +37,5 @@ export function getLookupConfig() {
 }
 
 export function getWebToZipApiUrl() {
-  return process.env.WEB_TO_ZIP_API_URL || "https://your-web-to-zip-service.vercel.app/zip";
+  return process.env.WEB_TO_ZIP_API_URL || "https://web2zip-pink.vercel.app/zip";
 }
