@@ -146,6 +146,9 @@ export function WebToZip({
         <p className="service-copy lookup-copy">
           Paste any website URL and download its zipped source through a secure server route, without exposing provider details in the browser.
         </p>
+        <p className="result-strip">
+          Captures website source assets like HTML, CSS, JS, images, fonts, and linked media files.
+        </p>
 
         <form onSubmit={handleSubmit} className="brutal-form webzip-form">
           <label htmlFor="websiteUrl">Website URL</label>

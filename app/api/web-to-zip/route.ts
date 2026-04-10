@@ -41,30 +41,26 @@ function normalizeWebsiteUrl(value: string) {
 }
 
 function sanitizeFilename(value: string) {
-  return value.replace(/[/\\?%*:|"<>]/g, "-");
+  return value
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
-function extractFilename(contentDisposition: string | null, sourceUrl: string, downloadUrl?: string) {
-  const filenameMatch = contentDisposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+function buildWebsiteZipFilename(sourceUrl: string) {
+  const parsed = new URL(sourceUrl);
+  const hostname = sanitizeFilename(parsed.hostname.replace(/^www\./i, "").toLowerCase());
+  const pathParts = parsed.pathname
+    .replace(/\/+$/g, "")
+    .split("/")
+    .filter(Boolean)
+    .slice(0, 3)
+    .map((part) => sanitizeFilename(decodeURIComponent(part)))
+    .filter(Boolean);
+  const baseName = [hostname, ...pathParts].filter(Boolean).join("-");
 
-  if (filenameMatch?.[1]) {
-    return sanitizeFilename(filenameMatch[1]);
-  }
-
-  if (downloadUrl) {
-    try {
-      const downloadPathName = new URL(downloadUrl).pathname.split("/").pop();
-
-      if (downloadPathName) {
-        return sanitizeFilename(decodeURIComponent(downloadPathName));
-      }
-    } catch {
-      // Fall through to hostname-based fallback.
-    }
-  }
-
-  const hostname = new URL(sourceUrl).hostname.replace(/[^a-z0-9.-]/gi, "-");
-  return `${hostname || "website"}-source.zip`;
+  return `${baseName || "website"}.zip`;
 }
 
 export async function GET(request: NextRequest) {
@@ -166,11 +162,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const filename = extractFilename(
-      zipResponse.headers.get("content-disposition"),
-      websiteUrl,
-      normalizedDownloadUrl
-    );
+    const filename = buildWebsiteZipFilename(websiteUrl);
 
     startCooldown(request, "web-to-zip");
 
