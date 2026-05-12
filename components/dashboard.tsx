@@ -2,12 +2,12 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ActivityItem, ApiStatus, ImageResult, LogoResult, VideoResult } from "@/lib/types";
-import { MobileLookup } from "@/components/mobile-lookup";
 import { WebToZip } from "@/components/web-to-zip";
 
 const starterPrompts = [
   "Luxury fashion house emblem with golden chrome",
   "Cute girl portrait with soft lighting and anime-inspired detail",
+  "18+ editorial fantasy portrait with cinematic lighting",
   "Travel reel of monsoon streets in Mumbai at night",
   "Launch teaser for a futuristic startup office"
 ];
@@ -15,11 +15,12 @@ const starterPrompts = [
 const tickerItems = [
   "3D logo drops",
   "text to image live",
+  "18+ image tool live",
   "text to video runs",
   "web to zip ready",
   "server-side secrets only",
   "10 second cooldown live",
-  "mobile lookup live"
+  "image generator upgraded"
 ];
 
 const videoFrames = [
@@ -84,6 +85,7 @@ function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
   const labels: Record<ActivityItem["type"], string> = {
     logo: "logo generator",
     image: "text to image",
+    adultImage: "18+ image",
     video: "text to video",
     webzip: "web to zip"
   };
@@ -291,23 +293,31 @@ function LogoGallery({
 function ImageGallery({
   status,
   result,
-  error
+  error,
+  title = "Image previews",
+  statusLabel = "image",
+  loadingText = "Rendering image concepts from your prompt...",
+  emptyText = "Generated image results will appear here with direct open links."
 }: {
   status: ApiStatus;
   result: ImageResult | null;
   error: string | null;
+  title?: string;
+  statusLabel?: string;
+  loadingText?: string;
+  emptyText?: string;
 }) {
   return (
     <section className="brutal-panel brutal-paper-panel">
       <div className="section-topline">
         <div>
           <p className="section-label">output board</p>
-          <h3 className="section-title">Image previews</h3>
+          <h3 className="section-title">{title}</h3>
         </div>
-        <StatusBadge label="image" status={status} />
+        <StatusBadge label={statusLabel} status={status} />
       </div>
 
-      {status === "loading" ? <div className="empty-board loading-board">Rendering image concepts from your prompt...</div> : null}
+      {status === "loading" ? <div className="empty-board loading-board">{loadingText}</div> : null}
       {error ? <div className="error-board">{error}</div> : null}
 
       {result?.images?.length ? (
@@ -322,7 +332,7 @@ function ImageGallery({
       ) : null}
 
       {!error && status !== "loading" && !result?.images?.length ? (
-        <div className="empty-board">Generated image results will appear here with direct open links.</div>
+        <div className="empty-board">{emptyText}</div>
       ) : null}
     </section>
   );
@@ -395,7 +405,11 @@ function ArchitectureBoard() {
         </article>
         <article className="note-card">
           <strong>/api/image</strong>
-          <p>Server route proxies the text-to-image provider, normalizes the returned image URLs, and keeps usage controlled with cooldowns.</p>
+          <p>Server route proxies the original text-to-image provider, normalizes returned image URLs, and keeps usage controlled with cooldowns.</p>
+        </article>
+        <article className="note-card">
+          <strong>/api/adult-image</strong>
+          <p>Server route proxies the 18+ image provider separately, normalizes its expiring image URL, and keeps it on its own cooldown.</p>
         </article>
         <article className="note-card">
           <strong>/api/video</strong>
@@ -404,10 +418,6 @@ function ArchitectureBoard() {
         <article className="note-card">
           <strong>/api/web-to-zip</strong>
           <p>Server route validates website URLs, proxies the ZIP provider, and streams downloadable source archives securely.</p>
-        </article>
-        <article className="note-card">
-          <strong>/api/lookup</strong>
-          <p>Server route validates 10-digit numbers, secures the lookup key, and returns only normalized result data for display.</p>
         </article>
         <article className="note-card">
           <strong>cooldown layer</strong>
@@ -421,25 +431,34 @@ function ArchitectureBoard() {
 export function Dashboard() {
   const [logoPrompt, setLogoPrompt] = useState(starterPrompts[0]);
   const [imagePrompt, setImagePrompt] = useState(starterPrompts[1]);
-  const [videoPrompt, setVideoPrompt] = useState(starterPrompts[2]);
+  const [adultImagePrompt, setAdultImagePrompt] = useState(starterPrompts[2]);
+  const [videoPrompt, setVideoPrompt] = useState(starterPrompts[3]);
   const [videoFrame, setVideoFrame] = useState<VideoFrame>(videoFrames[0]);
   const [logoStatus, setLogoStatus] = useState<ApiStatus>("idle");
   const [imageStatus, setImageStatus] = useState<ApiStatus>("idle");
+  const [adultImageStatus, setAdultImageStatus] = useState<ApiStatus>("idle");
   const [videoStatus, setVideoStatus] = useState<ApiStatus>("idle");
   const [logoResult, setLogoResult] = useState<LogoResult | null>(null);
   const [imageResult, setImageResult] = useState<ImageResult | null>(null);
+  const [adultImageResult, setAdultImageResult] = useState<ImageResult | null>(null);
   const [videoResult, setVideoResult] = useState<VideoResult | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [adultImageError, setAdultImageError] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [logoCooldownUntil, setLogoCooldownUntil] = useState(0);
   const [imageCooldownUntil, setImageCooldownUntil] = useState(0);
+  const [adultImageCooldownUntil, setAdultImageCooldownUntil] = useState(0);
   const [videoCooldownUntil, setVideoCooldownUntil] = useState(0);
   const [clock, setClock] = useState(() => Date.now());
 
   useEffect(() => {
-    const hasActiveCooldown = logoCooldownUntil > clock || imageCooldownUntil > clock || videoCooldownUntil > clock;
+    const hasActiveCooldown =
+      logoCooldownUntil > clock ||
+      imageCooldownUntil > clock ||
+      adultImageCooldownUntil > clock ||
+      videoCooldownUntil > clock;
 
     if (!hasActiveCooldown) {
       return undefined;
@@ -450,13 +469,14 @@ export function Dashboard() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [clock, logoCooldownUntil, imageCooldownUntil, videoCooldownUntil]);
+  }, [clock, logoCooldownUntil, imageCooldownUntil, adultImageCooldownUntil, videoCooldownUntil]);
 
   const stats = useMemo(() => {
     const successful = activity.filter((item) => item.status === "success").length;
     const failed = activity.filter((item) => item.status === "error").length;
     const logoRuns = activity.filter((item) => item.type === "logo").length;
     const imageRuns = activity.filter((item) => item.type === "image").length;
+    const adultImageRuns = activity.filter((item) => item.type === "adultImage").length;
     const videoRuns = activity.filter((item) => item.type === "video").length;
     const webzipRuns = activity.filter((item) => item.type === "webzip").length;
 
@@ -465,6 +485,7 @@ export function Dashboard() {
       failed,
       logoRuns,
       imageRuns,
+      adultImageRuns,
       videoRuns,
       webzipRuns
     };
@@ -472,6 +493,7 @@ export function Dashboard() {
 
   const logoCooldownSeconds = Math.max(0, Math.ceil((logoCooldownUntil - clock) / 1000));
   const imageCooldownSeconds = Math.max(0, Math.ceil((imageCooldownUntil - clock) / 1000));
+  const adultImageCooldownSeconds = Math.max(0, Math.ceil((adultImageCooldownUntil - clock) / 1000));
   const videoCooldownSeconds = Math.max(0, Math.ceil((videoCooldownUntil - clock) / 1000));
 
   function pushActivity(item: Omit<ActivityItem, "id" | "createdAt">) {
@@ -587,6 +609,57 @@ export function Dashboard() {
     }
   }
 
+  async function handleAdultImageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setAdultImageStatus("loading");
+    setAdultImageError(null);
+    setAdultImageResult(null);
+
+    try {
+      const response = await fetch("/api/adult-image", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ prompt: adultImagePrompt })
+      });
+
+      const data = (await response.json()) as ImageResponse;
+
+      if (!response.ok || data.status !== "success") {
+        if (response.status === 429 && data.retryAfter) {
+          const nextAllowedAt = Date.now() + data.retryAfter * 1000;
+          setAdultImageCooldownUntil(nextAllowedAt);
+          setClock(Date.now());
+        }
+
+        throw new Error(data.error || data.message || "18+ image generation failed.");
+      }
+
+      setAdultImageResult(data);
+      setAdultImageStatus("success");
+      setAdultImageCooldownUntil(Date.now() + 10_000);
+      setClock(Date.now());
+      pushActivity({
+        type: "adultImage",
+        prompt: adultImagePrompt,
+        status: "success",
+        detail: `${data.images.length} 18+ image option${data.images.length === 1 ? "" : "s"}`
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unexpected 18+ image error.";
+      setAdultImageStatus("error");
+      setAdultImageError(message);
+      setAdultImageResult(null);
+      pushActivity({
+        type: "adultImage",
+        prompt: adultImagePrompt,
+        status: "error",
+        detail: message
+      });
+    }
+  }
+
   async function handleVideoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setVideoStatus("loading");
@@ -653,9 +726,9 @@ export function Dashboard() {
       <nav className="jump-strip" aria-label="quick navigation">
         <a className="jump-link jump-link-accent" href="#logo-generator">Logo Tool</a>
         <a className="jump-link jump-link-secondary" href="#image-generator">Image Tool</a>
+        <a className="jump-link jump-link-muted" href="#adult-image-generator">18+ Image Tool</a>
         <a className="jump-link jump-link-paper" href="#video-generator">Video Tool</a>
         <a className="jump-link jump-link-secondary" href="#web-to-zip">Web ZIP Tool</a>
-        <a className="jump-link jump-link-muted" href="#mobile-lookup">Lookup Tool</a>
       </nav>
       <section className="hero-grid">
         <header className="brutal-panel hero-panel">
@@ -667,7 +740,7 @@ export function Dashboard() {
             <span>STUDIO</span>
           </h1>
           <p className="hero-copy">
-            A production-ready AI workspace for logo generation, image creation, video production, and secure mobile lookup workflows.
+            A production-ready AI workspace for logo generation, classic image creation, 18+ image generation, video production, and web-to-ZIP workflows.
             Built with protected server routes, responsive controls, and dependable tools for real-world production use.
           </p>
 
@@ -680,6 +753,7 @@ export function Dashboard() {
                 onClick={() => {
                   setLogoPrompt(prompt);
                   setImagePrompt(prompt);
+                  setAdultImagePrompt(prompt);
                   setVideoPrompt(prompt);
                 }}
               >
@@ -691,6 +765,7 @@ export function Dashboard() {
           <div className="hero-status-row">
             <StatusBadge label="logo" status={logoStatus} />
             <StatusBadge label="image" status={imageStatus} />
+            <StatusBadge label="18+ image" status={adultImageStatus} />
             <StatusBadge label="video" status={videoStatus} />
           </div>
         </header>
@@ -706,7 +781,7 @@ export function Dashboard() {
           </div>
           <div className="chaos-card chaos-card-muted">
             <span className="chaos-chip">all in one</span>
-            <strong>Production-ready tools for logos, images, videos, and mobile lookup workflows.</strong>
+            <strong>Production-ready tools for logos, classic images, 18+ images, videos, and website ZIP exports.</strong>
           </div>
           <div className="burst-shape burst-one" aria-hidden="true" />
           <div className="burst-shape burst-two" aria-hidden="true" />
@@ -717,6 +792,7 @@ export function Dashboard() {
         <StatCard label="successful runs" value={String(stats.successful)} tone="secondary" />
         <StatCard label="logo requests" value={String(stats.logoRuns)} tone="accent" />
         <StatCard label="image requests" value={String(stats.imageRuns)} tone="muted" />
+        <StatCard label="18+ image requests" value={String(stats.adultImageRuns)} tone="secondary" />
         <StatCard label="video requests" value={String(stats.videoRuns)} tone="paper" />
         <StatCard label="web zip requests" value={String(stats.webzipRuns)} tone="accent" />
         <StatCard label="errors caught" value={String(stats.failed)} tone="secondary" />
@@ -747,7 +823,7 @@ export function Dashboard() {
           id="imagePrompt"
           title="Text to Image"
           kicker="service two"
-          description="Turn a text prompt into generated image concepts and review direct preview links inside the dashboard."
+          description="Turn a text prompt into generated image concepts with the original image provider."
           prompt={imagePrompt}
           onChange={setImagePrompt}
           onSubmit={handleImageSubmit}
@@ -762,10 +838,37 @@ export function Dashboard() {
         <ImageGallery status={imageStatus} result={imageResult} error={imageError} />
 
         <GeneratorForm
+          sectionId="adult-image-generator"
+          id="adultImagePrompt"
+          title="18+ Image Generator"
+          kicker="service three"
+          description="Generate 18+ image results from the separate provider and open the expiring image link directly from the dashboard."
+          prompt={adultImagePrompt}
+          onChange={setAdultImagePrompt}
+          onSubmit={handleAdultImageSubmit}
+          buttonLabel="Generate 18+ Image"
+          busyLabel="Rendering..."
+          isBusy={adultImageStatus === "loading"}
+          cooldownSeconds={adultImageCooldownSeconds}
+          cooldownLabel="18+ image generator"
+          accent="accent"
+        />
+
+        <ImageGallery
+          status={adultImageStatus}
+          result={adultImageResult}
+          error={adultImageError}
+          title="18+ image previews"
+          statusLabel="18+ image"
+          loadingText="Rendering 18+ image output from your prompt..."
+          emptyText="18+ generated image results will appear here with direct open links."
+        />
+
+        <GeneratorForm
           sectionId="video-generator"
           id="videoPrompt"
           title="Text to Video"
-          kicker="service three"
+          kicker="service four"
           description="Create short AI videos with server-side safety checks, job polling, and ready-to-play final output."
           prompt={videoPrompt}
           onChange={setVideoPrompt}
@@ -783,10 +886,6 @@ export function Dashboard() {
         />
 
         <VideoPreview status={videoStatus} result={videoResult} error={videoError} />
-      </section>
-
-      <section id="mobile-lookup">
-        <MobileLookup />
       </section>
 
       <section id="web-to-zip">

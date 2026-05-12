@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getTextToImageApiUrl } from "@/lib/api-config";
+import { getAdultImageApiUrl } from "@/lib/api-config";
 import { getCooldownResponse, startCooldown } from "@/lib/request-cooldown";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-type ExternalImageResponse = {
+type ExternalAdultImageResponse = {
   status?: string;
   message?: string;
   url?: string;
@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Prompt is required." }, { status: 400 });
   }
 
-  const cooldownResponse = getCooldownResponse(request, "image");
+  const cooldownResponse = getCooldownResponse(request, "adult-image");
 
   if (cooldownResponse) {
     return cooldownResponse;
   }
 
   try {
-    const url = new URL(getTextToImageApiUrl());
+    const url = new URL(getAdultImageApiUrl());
     url.searchParams.set("prompt", prompt);
 
     const response = await fetch(url, {
@@ -43,12 +43,12 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       return NextResponse.json(
-        { error: "Image provider returned an error." },
+        { error: "18+ image provider returned an error." },
         { status: 502 }
       );
     }
 
-    const data = (await response.json()) as ExternalImageResponse;
+    const data = (await response.json()) as ExternalAdultImageResponse;
     const possibleImages = [
       data.url,
       data.image,
@@ -59,12 +59,12 @@ export async function POST(request: NextRequest) {
 
     if (data.status !== "success" || images.length === 0) {
       return NextResponse.json(
-        { error: data.error || data.message || "Image generation failed." },
+        { error: data.error || data.message || "18+ image generation failed." },
         { status: 400 }
       );
     }
 
-    startCooldown(request, "image");
+    startCooldown(request, "adult-image");
 
     return NextResponse.json({
       status: "success",
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const message =
       error instanceof Error && process.env.NODE_ENV !== "production"
         ? error.message
-        : "Unable to generate the image right now.";
+        : "Unable to generate the 18+ image right now.";
 
     return NextResponse.json(
       { error: message },

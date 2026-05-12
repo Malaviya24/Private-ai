@@ -25,23 +25,9 @@ export type VideoResult = {
   aspectRatio?: string;
 };
 
-export type LookupFieldValue = string | number | boolean | null;
-
-export type LookupRecord = Record<string, LookupFieldValue>;
-
-export type LookupResult = {
-  success: boolean;
-  number: string;
-  status?: string;
-  count: number;
-  searchTime?: string;
-  results: LookupRecord[];
-  message?: string;
-};
-
 export type ActivityItem = {
   id: string;
-  type: "logo" | "image" | "video" | "webzip";
+  type: "logo" | "image" | "adultImage" | "video" | "webzip";
   prompt: string;
   createdAt: string;
   status: "success" | "error";
