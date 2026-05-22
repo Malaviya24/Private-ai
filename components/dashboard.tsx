@@ -423,8 +423,8 @@ function ArchitectureBoard() {
           <p>Server route validates website URLs, proxies the ZIP provider, and streams downloadable source archives securely.</p>
         </article>
         <article className="note-card">
-          <strong>/api/vcf-to-xlsx</strong>
-          <p>Server route parses uploaded vCard files in memory, normalizes contact fields, and streams a real Excel workbook back to the browser.</p>
+          <strong>vcf to xlsx (browser only)</strong>
+          <p>VCF contacts are parsed directly in the browser and exported to a real Excel workbook locally. Files never leave the user's device.</p>
         </article>
         <article className="note-card">
           <strong>cooldown layer</strong>

@@ -1,36 +1,31 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useRef, useState } from "react";
 import type { ApiStatus } from "@/lib/types";
-
-type VcfXlsxErrorResponse = {
-  error?: string;
-  message?: string;
-  retryAfter?: number;
-};
-
-function parseDownloadFilename(contentDisposition: string | null) {
-  if (!contentDisposition) {
-    return null;
-  }
-
-  const match = contentDisposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
-
-  if (!match?.[1]) {
-    return null;
-  }
-
-  try {
-    return decodeURIComponent(match[1]).replace(/[/\\?%*:|"<>]/g, "-");
-  } catch {
-    return match[1].replace(/[/\\?%*:|"<>]/g, "-");
-  }
-}
+import { buildContactRows, parseVcf } from "@/lib/vcf-parser";
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function sanitizeBaseName(value: string) {
+  const trimmed = value
+    .replace(/\.vcf$/i, "")
+    .replace(/[/\\?%*:|"<>]/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+
+  return trimmed || "contacts";
+}
+
+async function readFileAsText(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const decoder = new TextDecoder("utf-8", { fatal: false });
+  return decoder.decode(buffer);
 }
 
 export function VcfToXlsx({
@@ -43,23 +38,7 @@ export function VcfToXlsx({
   const [error, setError] = useState<string | null>(null);
   const [lastDownload, setLastDownload] = useState<string | null>(null);
   const [contactCount, setContactCount] = useState<number | null>(null);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
-  const [clock, setClock] = useState(() => Date.now());
   const inputRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (cooldownUntil <= clock) {
-      return undefined;
-    }
-
-    const timer = window.setInterval(() => {
-      setClock(Date.now());
-    }, 1000);
-
-    return () => window.clearInterval(timer);
-  }, [clock, cooldownUntil]);
-
-  const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - clock) / 1000));
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const next = event.target.files?.[0] || null;
@@ -87,7 +66,7 @@ export function VcfToXlsx({
 
     if (!file) {
       setStatus("error");
-      setError("Choose a .vcf contacts file before uploading.");
+      setError("Choose a .vcf contacts file before converting.");
       onActivity?.({
         type: "vcfXlsx",
         prompt: "(no file)",
@@ -101,38 +80,54 @@ export function VcfToXlsx({
     setError(null);
     setLastDownload(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
-      const response = await fetch("/api/vcf-to-xlsx", {
-        method: "POST",
-        body: formData,
-        cache: "no-store"
+      const text = await readFileAsText(file);
+
+      if (!/^BEGIN:VCARD/im.test(text)) {
+        throw new Error("This file does not look like a vCard (.vcf) file.");
+      }
+
+      const contacts = parseVcf(text);
+
+      if (contacts.length === 0) {
+        throw new Error("No contacts were found inside the selected file.");
+      }
+
+      // Lazy-load SheetJS only when the user actually converts a file. This
+      // keeps the initial page bundle slim.
+      const XLSX = await import("xlsx");
+
+      const { rows } = buildContactRows(contacts);
+      const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+      const columnWidths = rows[0].map((_, columnIndex) => {
+        let max = 10;
+        for (const row of rows) {
+          const cell = row[columnIndex];
+          const length = cell == null ? 0 : String(cell).length;
+          if (length > max) {
+            max = length;
+          }
+        }
+        return { wch: Math.min(max + 2, 60) };
       });
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as VcfXlsxErrorResponse | null;
+      worksheet["!cols"] = columnWidths;
 
-        if (response.status === 429 && payload?.retryAfter) {
-          setCooldownUntil(Date.now() + payload.retryAfter * 1000);
-          setClock(Date.now());
-        }
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
 
-        throw new Error(payload?.error || payload?.message || "Could not convert this file to XLSX.");
-      }
+      const arrayBuffer = XLSX.write(workbook, {
+        type: "array",
+        bookType: "xlsx",
+        compression: true
+      }) as ArrayBuffer;
 
-      const blob = await response.blob();
+      const blob = new Blob([arrayBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      });
 
-      if (blob.size === 0) {
-        throw new Error("The server returned an empty workbook.");
-      }
-
-      const fallbackName = `${file.name.replace(/\.vcf$/i, "") || "contacts"}-contacts.xlsx`;
-      const filename = parseDownloadFilename(response.headers.get("content-disposition")) || fallbackName;
-      const headerCount = response.headers.get("x-contact-count");
-      const parsedCount = headerCount ? Number(headerCount) : NaN;
-
+      const filename = `${sanitizeBaseName(file.name)}-contacts.xlsx`;
       const objectUrl = window.URL.createObjectURL(blob);
       const anchor = document.createElement("a");
 
@@ -144,21 +139,17 @@ export function VcfToXlsx({
       anchor.remove();
       window.URL.revokeObjectURL(objectUrl);
 
-      const finalCount = Number.isFinite(parsedCount) ? parsedCount : null;
-      setContactCount(finalCount);
+      setContactCount(contacts.length);
       setStatus("success");
       setLastDownload(`${file.name} -> ${filename}`);
-      setCooldownUntil(Date.now() + 10_000);
-      setClock(Date.now());
       onActivity?.({
         type: "vcfXlsx",
         prompt: file.name,
         status: "success",
-        detail:
-          finalCount !== null ? `${finalCount} contact${finalCount === 1 ? "" : "s"} exported` : "xlsx downloaded"
+        detail: `${contacts.length} contact${contacts.length === 1 ? "" : "s"} exported`
       });
-    } catch (requestError) {
-      const message = requestError instanceof Error ? requestError.message : "Unable to convert file.";
+    } catch (conversionError) {
+      const message = conversionError instanceof Error ? conversionError.message : "Unable to convert file.";
       setStatus("error");
       setError(message);
       onActivity?.({
@@ -182,11 +173,11 @@ export function VcfToXlsx({
         </div>
 
         <p className="service-copy lookup-copy">
-          Upload a .vcf contacts export from your phone or Google Contacts and download a clean Excel workbook with every name,
+          Upload a .vcf contacts export from your phone or Google Contacts and get back a clean Excel workbook with every name,
           phone number, email, address, and note in tidy columns.
         </p>
         <p className="result-strip">
-          Supports vCard 2.1, 3.0, and 4.0 with quoted-printable encoding. Your file stays in memory and is never written to disk.
+          Runs fully in your browser. Your file never leaves your device. Supports vCard 2.1, 3.0, and 4.0 with quoted-printable encoding.
         </p>
 
         <form onSubmit={handleSubmit} className="brutal-form webzip-form">
@@ -203,22 +194,16 @@ export function VcfToXlsx({
             <button
               type="submit"
               className="brutal-button brutal-button-accent lookup-submit"
-              disabled={status === "loading" || cooldownSeconds > 0 || !file}
+              disabled={status === "loading" || !file}
             >
-              {status === "loading"
-                ? "Converting..."
-                : cooldownSeconds > 0
-                ? `Wait ${cooldownSeconds}s`
-                : "Convert to XLSX"}
+              {status === "loading" ? "Converting..." : "Convert to XLSX"}
             </button>
           </div>
 
           <p className="lookup-helper" aria-live="polite">
             {file
               ? `Selected: ${file.name} (${formatBytes(file.size)})`
-              : cooldownSeconds > 0
-              ? `VCF to XLSX is on cooldown. Try again in ${cooldownSeconds}s.`
-              : "Up to 10 MB. Multiple contacts in one file are fully supported."}
+              : "Pick any .vcf file. Conversion happens locally in your browser, no upload involved."}
           </p>
         </form>
 

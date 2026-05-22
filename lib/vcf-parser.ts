@@ -1,5 +1,3 @@
-import "server-only";
-
 export type VcfContact = {
   fullName: string;
   firstName: string;
