@@ -77,7 +77,7 @@ export default function TeraboxPage() {
 
         <footer className="tb-footer">
           <p>
-            Powered by <strong>AnshAPI</strong> · TeraBox Streaming · Built into Malaviya AI Studio
+            Powered by <strong>Malaviya AI</strong> · TeraBox Streaming · Built into Malaviya AI Studio
           </p>
         </footer>
       </div>
