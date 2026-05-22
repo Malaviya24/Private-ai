@@ -964,6 +964,61 @@ video {
   scroll-margin-top: 18px;
 }
 
+#terabox-launch {
+  scroll-margin-top: 18px;
+}
+
+.terabox-launch {
+  padding: 24px;
+  background:
+    linear-gradient(135deg, transparent 0 84%, rgba(0, 0, 0, 0.07) 84% 100%),
+    var(--neo-bg);
+}
+
+.terabox-perks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px 24px;
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 18px;
+  font-weight: 700;
+}
+
+.terabox-perks li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.terabox-perks li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--neo-fg);
+  font-weight: 900;
+}
+
+.terabox-cta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.terabox-cta {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.terabox-helper {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--neo-fg);
+  opacity: 0.75;
+}
+
 .lookup-stage {
   scroll-margin-top: 18px;
   margin-top: 24px;

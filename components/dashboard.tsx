@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ActivityItem, ApiStatus, ImageResult, LogoResult, VideoResult } from "@/lib/types";
 import { WebToZip } from "@/components/web-to-zip";
@@ -20,6 +21,7 @@ const tickerItems = [
   "text to video runs",
   "web to zip ready",
   "vcf to xlsx live",
+  "terabox player live",
   "server-side secrets only",
   "10 second cooldown live",
   "image generator upgraded"
@@ -427,6 +429,10 @@ function ArchitectureBoard() {
           <p>VCF contacts are parsed directly in the browser and exported to a real Excel workbook locally. Files never leave the user's device.</p>
         </article>
         <article className="note-card">
+          <strong>/api/terabox + /terabox</strong>
+          <p>Server route proxies TeraBox metadata lookups via AnshAPI. The dedicated /terabox page renders a custom HD player with quality switching and direct download links.</p>
+        </article>
+        <article className="note-card">
           <strong>cooldown layer</strong>
           <p>Request cooldowns reduce provider strain, prevent abuse, and keep the experience stable for repeated use.</p>
         </article>
@@ -739,6 +745,7 @@ export function Dashboard() {
         <a className="jump-link jump-link-paper" href="#video-generator">Video Tool</a>
         <a className="jump-link jump-link-secondary" href="#web-to-zip">Web ZIP Tool</a>
         <a className="jump-link jump-link-accent" href="#vcf-to-xlsx">VCF to Excel</a>
+        <Link className="jump-link jump-link-muted" href="/terabox">TeraBox Player ↗</Link>
       </nav>
       <section className="hero-grid">
         <header className="brutal-panel hero-panel">
@@ -905,6 +912,36 @@ export function Dashboard() {
 
       <section id="vcf-to-xlsx">
         <VcfToXlsx onActivity={pushActivity} />
+      </section>
+
+      <section id="terabox-launch" className="lookup-stage">
+        <article className="brutal-panel terabox-launch">
+          <div className="section-topline">
+            <div>
+              <p className="section-label">service seven</p>
+              <h2 className="service-title">TeraBox HD Stream Player</h2>
+            </div>
+            <span className="sticker-pill sticker-pill-accent">new tool</span>
+          </div>
+
+          <p className="service-copy lookup-copy">
+            Paste any TeraBox share link and stream the video instantly in HD with quality switching and direct download links. Opens in a dedicated full-screen player page.
+          </p>
+
+          <ul className="terabox-perks">
+            <li>360p / 480p / 720p quality switcher</li>
+            <li>Direct MP4 and ZIP download</li>
+            <li>Custom video player with fullscreen</li>
+            <li>Mobile-friendly responsive layout</li>
+          </ul>
+
+          <div className="terabox-cta-row">
+            <Link className="brutal-button brutal-button-accent terabox-cta" href="/terabox">
+              Open TeraBox Player →
+            </Link>
+            <span className="terabox-helper">Streams come straight from TeraBox to your browser.</span>
+          </div>
+        </article>
       </section>
 
       <section id="system-notes" className="lower-grid">

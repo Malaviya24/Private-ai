@@ -36,6 +36,10 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "terabox-player",
+    "LOGO GENERATOR API",
+    "TEXT TO VIDEO API",
+    "WEB-TO-ZIP"
   ]
 }

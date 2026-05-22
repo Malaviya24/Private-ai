@@ -36,3 +36,10 @@ export function getTextToVideoConfig() {
 export function getWebToZipApiUrl() {
   return process.env.WEB_TO_ZIP_API_URL || "https://web2zip-pink.vercel.app/zip";
 }
+
+export function getTeraboxConfig() {
+  return {
+    baseUrl: process.env.TERABOX_API_BASE || "https://ansh-apis.is-dev.org/api/teraboxapi",
+    apiKey: process.env.TERABOX_API_KEY || "anshapi"
+  };
+}
