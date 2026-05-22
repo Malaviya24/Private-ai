@@ -27,7 +27,7 @@ export type VideoResult = {
 
 export type ActivityItem = {
   id: string;
-  type: "logo" | "image" | "adultImage" | "video" | "webzip";
+  type: "logo" | "image" | "adultImage" | "video" | "webzip" | "vcfXlsx";
   prompt: string;
   createdAt: string;
   status: "success" | "error";

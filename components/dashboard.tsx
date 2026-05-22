@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { ActivityItem, ApiStatus, ImageResult, LogoResult, VideoResult } from "@/lib/types";
 import { WebToZip } from "@/components/web-to-zip";
+import { VcfToXlsx } from "@/components/vcf-to-xlsx";
 
 const starterPrompts = [
   "Luxury fashion house emblem with golden chrome",
@@ -18,6 +19,7 @@ const tickerItems = [
   "18+ image tool live",
   "text to video runs",
   "web to zip ready",
+  "vcf to xlsx live",
   "server-side secrets only",
   "10 second cooldown live",
   "image generator upgraded"
@@ -87,7 +89,8 @@ function ActivityFeed({ activity }: { activity: ActivityItem[] }) {
     image: "text to image",
     adultImage: "18+ image",
     video: "text to video",
-    webzip: "web to zip"
+    webzip: "web to zip",
+    vcfXlsx: "vcf to xlsx"
   };
 
   return (
@@ -420,6 +423,10 @@ function ArchitectureBoard() {
           <p>Server route validates website URLs, proxies the ZIP provider, and streams downloadable source archives securely.</p>
         </article>
         <article className="note-card">
+          <strong>/api/vcf-to-xlsx</strong>
+          <p>Server route parses uploaded vCard files in memory, normalizes contact fields, and streams a real Excel workbook back to the browser.</p>
+        </article>
+        <article className="note-card">
           <strong>cooldown layer</strong>
           <p>Request cooldowns reduce provider strain, prevent abuse, and keep the experience stable for repeated use.</p>
         </article>
@@ -479,6 +486,7 @@ export function Dashboard() {
     const adultImageRuns = activity.filter((item) => item.type === "adultImage").length;
     const videoRuns = activity.filter((item) => item.type === "video").length;
     const webzipRuns = activity.filter((item) => item.type === "webzip").length;
+    const vcfXlsxRuns = activity.filter((item) => item.type === "vcfXlsx").length;
 
     return {
       successful,
@@ -487,7 +495,8 @@ export function Dashboard() {
       imageRuns,
       adultImageRuns,
       videoRuns,
-      webzipRuns
+      webzipRuns,
+      vcfXlsxRuns
     };
   }, [activity]);
 
@@ -729,6 +738,7 @@ export function Dashboard() {
         <a className="jump-link jump-link-muted" href="#adult-image-generator">18+ Image Tool</a>
         <a className="jump-link jump-link-paper" href="#video-generator">Video Tool</a>
         <a className="jump-link jump-link-secondary" href="#web-to-zip">Web ZIP Tool</a>
+        <a className="jump-link jump-link-accent" href="#vcf-to-xlsx">VCF to Excel</a>
       </nav>
       <section className="hero-grid">
         <header className="brutal-panel hero-panel">
@@ -795,6 +805,7 @@ export function Dashboard() {
         <StatCard label="18+ image requests" value={String(stats.adultImageRuns)} tone="secondary" />
         <StatCard label="video requests" value={String(stats.videoRuns)} tone="paper" />
         <StatCard label="web zip requests" value={String(stats.webzipRuns)} tone="accent" />
+        <StatCard label="vcf xlsx requests" value={String(stats.vcfXlsxRuns)} tone="muted" />
         <StatCard label="errors caught" value={String(stats.failed)} tone="secondary" />
       </section>
 
@@ -890,6 +901,10 @@ export function Dashboard() {
 
       <section id="web-to-zip">
         <WebToZip onActivity={pushActivity} />
+      </section>
+
+      <section id="vcf-to-xlsx">
+        <VcfToXlsx onActivity={pushActivity} />
       </section>
 
       <section id="system-notes" className="lower-grid">
